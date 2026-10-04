@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สั่งจองเสื้อกีฬาสี</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Kanit', sans-serif; }
+    .size-btn.selected {
+      background-color: #2563eb;
+      color: white;
+      border-color: #1d4ed8;
+      box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 relative pb-10">
+
+  <!-- Navbar Header -->
+  <nav class="bg-blue-600 text-white shadow-md">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="showView('search')">
+        <i class="fa-solid fa-shirt text-2xl"></i>
+        <h1 class="font-semibold text-lg md:text-xl">จองเสื้อกีฬาสี</h1>
+      </div>
+      <button onclick="openAdminModal()" class="p-2 hover:bg-blue-700 rounded-full transition" title="ผู้ดูแลระบบ">
+        <i class="fa-solid fa-gear text-xl"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Container หลัก -->
+  <div class="max-w-4xl mx-auto px-4 mt-6">
+
+    <!-- 1. หน้าค้นหาด้วยรหัสนักศึกษา -->
+    <div id="view-search" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8 text-center">
+      <div class="max-w-md mx-auto">
+        <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i class="fa-solid fa-id-card text-2xl"></i>
+        </div>
+        <h2 class="text-xl font-semibold mb-2">ค้นหาข้อมูลนักศึกษา</h2>
+        <p class="text-slate-500 text-sm mb-6">กรอกรหัสนักศึกษาของคุณเพื่อเริ่มลงทะเบียนเลือก Size เสื้อ</p>
+        
+        <form onsubmit="handleSearch(event)" class="space-y-4">
+          <input type="text" id="input-student-id" placeholder="กรอกรหัสนักศึกษา" required
+            class="w-full text-center px-4 py-3 text-lg border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+          
+          <button type="submit" id="btn-search"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center space-x-2">
+            <span>ค้นหาข้อมูล</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </form>
+
+        <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-left flex items-start space-x-3 text-amber-800 text-xs sm:text-sm">
+          <i class="fa-solid fa-triangle-exclamation text-amber-500 text-base mt-0.5 shrink-0"></i>
+          <p class="leading-relaxed">
+            <strong>คำชี้แจง:</strong> ขอให้นักศึกษาวัดรอบ อก เพื่อเลือก size เสื้อ กรณีระบุแล้ว จะอ้างอิงตาม size ที่ระบุ เมื่อรับเสื้อแล้วจะไม่อนุญาตให้เปลี่ยน
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. หน้าเลือก Size เสื้อ และหมายเหตุ -->
+    <div id="view-order" class="hidden bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8">
+      <div class="bg-slate-50 rounded-xl p-4 md:p-6 mb-6 border border-slate-200">
+        <div class="flex justify-between items-start mb-2">
+          <h3 class="font-semibold text-lg text-slate-800" id="info-name">-</h3>
+          <span id="info-color" class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-800">-</span>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-slate-600">
+          <p><strong>รหัส:</strong> <span id="info-id">-</span></p>
+          <p><strong>ระดับชั้น:</strong> <span id="info-grade">-</span></p>
+          <p><strong>เลขที่:</strong> <span id="info-number">-</span></p>
+          <p><strong>Size เดิม:</strong> <span id="info-old-size" class="text-red-600 font-bold">-</span></p>
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <label class="block font-medium text-slate-700 mb-3">เลือก Size เสื้อ <span class="text-red-500">*</span></label>
+        <div id="size-options" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+      </div>
+
+      <div class="mb-6">
+        <label class="block font-medium text-slate-700 mb-2">หมายเหตุ (ถ้ามี)</label>
+        <textarea id="input-memo" rows="3" placeholder="ระบุข้อมูลเพิ่มเติม (เช่น ขอแขนยาว หรือปรับแก้เพิ่มเติม)"
+          class="w-full px-4 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition"></textarea>
+      </div>
+
+      <div class="flex space-x-3">
+        <button onclick="showView('search')" 
+          class="w-1/3 border border-slate-300 text-slate-600 hover:bg-slate-50 font-medium py-3 rounded-xl transition">
+          ย้อนกลับ
+        </button>
+        <button onclick="confirmOrderModal()" 
+          class="w-2/3 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl shadow-md transition">
+          บันทึกข้อมูล
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. หน้า Admin Dashboard & Settings -->
+    <div id="view-admin" class="hidden space-y-6">
+      <div class="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-100">
+        <h2 class="text-xl font-semibold text-slate-800"><i class="fa-solid fa-user-gear mr-2 text-blue-600"></i>แผงควบคุมระบบ (Admin)</h2>
+        <button onclick="showView('search')" class="text-slate-500 hover:text-slate-700">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <h3 class="font-semibold text-lg mb-4 text-slate-800"><i class="fa-solid fa-sliders mr-2"></i>ตั้งค่าสถานะการค้นหาตามระดับชั้น</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 font-medium">
+              <tr>
+                <th class="p-3 rounded-l-lg">ระดับชั้น</th>
+                <th class="p-3 rounded-r-lg">สถานะการค้นหา</th>
+              </tr>
+            </thead>
+            <tbody id="fix-settings-table"></tbody>
+          </table>
+        </div>
+        <button onclick="saveFixSettings()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition shadow-md">
+          บันทึกการตั้งค่าสถานะ
+        </button>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <h3 class="font-semibold text-lg mb-4 text-slate-800"><i class="fa-solid fa-chart-pie mr-2"></i>รายงานสรุปยอดสั่งจอง Size เสื้อ</h3>
+        
+        <div class="overflow-x-auto mb-8">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                <th class="p-3 border-r border-slate-200">Size (ขนาด)</th>
+                <th class="p-3 text-center text-red-600 bg-red-50/50">สีแดง</th>
+                <th class="p-3 text-center text-amber-600 bg-amber-50/50">สีเหลือง</th>
+                <th class="p-3 text-center text-blue-600 bg-blue-50/50">สีน้ำเงิน</th>
+                <th class="p-3 text-center text-emerald-600 bg-emerald-50/50">สีเขียว</th>
+                <th class="p-3 text-center bg-slate-200 text-slate-800">รวมทั้งหมด</th>
+              </tr>
+            </thead>
+            <tbody id="report-size-table" class="divide-y divide-slate-100 text-slate-700"></tbody>
+            <tfoot id="report-size-table-foot" class="bg-slate-100 font-bold text-slate-800"></tfoot>
+          </table>
+        </div>
+
+        <h4 class="font-semibold text-md text-slate-700 mb-3">ความคืบหน้าแยกตามระดับชั้น</h4>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 font-medium">
+              <tr>
+                <th class="p-3">ระดับชั้น</th>
+                <th class="p-3">สี</th>
+                <th class="p-3 text-center">จำนวนนักเรียนทั้งหมด</th>
+                <th class="p-3 text-center">ระบุ Size แล้ว</th>
+                <th class="p-3 text-center">ร้อยละความสำเร็จ</th>
+              </tr>
+            </thead>
+            <tbody id="report-class-table" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal แจ้งเตือนข้อความ -->
+  <div id="modal-alert" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50 transition-opacity">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl text-center">
+      <div id="alert-icon" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"></div>
+      <h3 id="alert-title" class="font-semibold text-lg text-slate-800 mb-1">แจ้งเตือน</h3>
+      <p id="alert-message" class="text-sm text-slate-600 mb-5 leading-relaxed"></p>
+      <button onclick="closeCustomAlert()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl transition shadow-md">
+        OK
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal ยืนยันรหัสผ่าน Admin -->
+  <div id="modal-admin-login" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+      <h3 class="font-semibold text-lg mb-4 text-center">เข้าสู่ระบบผู้ดูแลระบบ</h3>
+      <input type="password" id="input-admin-pass" placeholder="รหัสผ่าน Admin" 
+        class="w-full px-4 py-2 border border-slate-300 rounded-xl mb-4 text-center focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <div class="flex space-x-2">
+        <button onclick="closeAdminModal()" class="w-1/2 py-2 border border-slate-300 rounded-xl">ยกเลิก</button>
+        <button onclick="verifyAdminPass()" class="w-1/2 bg-blue-600 text-white rounded-xl py-2">ตกลง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal ยืนยันการบันทึก Size -->
+  <div id="modal-confirm-order" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+      <h3 class="font-semibold text-lg mb-2 text-center text-slate-800">ยืนยันการเลือก Size เสื้อ</h3>
+      <div class="bg-blue-50 p-4 rounded-xl my-4 text-sm text-slate-700 space-y-2">
+        <p><strong>ชื่อ-นามสกุล:</strong> <span id="confirm-name"></span></p>
+        <p><strong>Size เสื้อที่เลือก:</strong> <span id="confirm-size" class="text-blue-600 font-bold text-lg"></span></p>
+        <p><strong>หมายเหตุ:</strong> <span id="confirm-memo"></span></p>
+      </div>
+      <div class="flex space-x-3">
+        <button onclick="closeConfirmModal()" class="w-1/2 py-2.5 border border-slate-300 rounded-xl text-slate-600">แก้ไข</button>
+        <button onclick="submitOrder()" class="w-1/2 bg-blue-600 text-white rounded-xl py-2.5 font-medium shadow-md">ยืนยันบันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading" class="fixed inset-0 bg-white/70 hidden flex flex-col items-center justify-center z-50">
+    <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+    <p class="text-slate-600 font-medium">กำลังดำเนินการ...</p>
+  </div>
+
+  <script>
+    // 🔗 นำ Web App URL ที่ได้จาก Google Apps Script มาใส่ตรงนี้
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwwDcZVr5J3sOHupzuOoBw-U27sNIo9JUoo5s6ycoDPrk3At9WeU8r1hHe36tjzGYY/exec';
+
+    let currentStudent = null;
+    let selectedSize = '';
+    let sizeList = [];
+    let alertCallback = null;
+
+    window.onload = function() {
+      loadSizes();
+    };
+
+    // ฟังก์ชันยิง API ไปหา Google Apps Script
+    async function fetchAPI(payload) {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      return await response.json();
+    }
+
+    function showAlert(message, type = 'info', title = 'แจ้งเตือน', callback = null) {
+      alertCallback = callback;
+      const modal = document.getElementById('modal-alert');
+      const iconContainer = document.getElementById('alert-icon');
+      
+      document.getElementById('alert-title').innerText = title;
+      document.getElementById('alert-message').innerText = message;
+
+      if (type === 'success') {
+        iconContainer.className = "w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-emerald-100 text-emerald-600";
+        iconContainer.innerHTML = '<i class="fa-solid fa-check text-2xl"></i>';
+      } else if (type === 'error') {
+        iconContainer.className = "w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-rose-100 text-rose-600";
+        iconContainer.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-2xl"></i>';
+      } else {
+        iconContainer.className = "w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-blue-100 text-blue-600";
+        iconContainer.innerHTML = '<i class="fa-solid fa-circle-info text-2xl"></i>';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeCustomAlert() {
+      document.getElementById('modal-alert').classList.add('hidden');
+      if (alertCallback) {
+        alertCallback();
+        alertCallback = null;
+      }
+    }
+
+    function showLoading(show) {
+      document.getElementById('loading').classList.toggle('hidden', !show);
+    }
+
+    function showView(viewName) {
+      document.getElementById('view-search').classList.add('hidden');
+      document.getElementById('view-order').classList.add('hidden');
+      document.getElementById('view-admin').classList.add('hidden');
+
+      if (viewName === 'search') document.getElementById('view-search').classList.remove('hidden');
+      if (viewName === 'order') document.getElementById('view-order').classList.remove('hidden');
+      if (viewName === 'admin') document.getElementById('view-admin').classList.remove('hidden');
+    }
+
+    async function loadSizes() {
+      try {
+        const sizes = await fetchAPI({ action: 'getSizes' });
+        sizeList = sizes;
+        const container = document.getElementById('size-options');
+        container.innerHTML = sizes.map(size => `
+          <button type="button" onclick="selectSize('${size}')" id="size-btn-${size}"
+            class="size-btn border-2 border-slate-200 rounded-xl p-3 font-semibold text-center hover:border-blue-400 transition">
+            ${size}
+          </button>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function selectSize(size) {
+      selectedSize = size;
+      document.querySelectorAll('.size-btn').forEach(btn => btn.classList.remove('selected'));
+      const activeBtn = document.getElementById(`size-btn-${size}`);
+      if (activeBtn) activeBtn.classList.add('selected');
+    }
+
+    async function handleSearch(e) {
+      e.preventDefault();
+      const studentId = document.getElementById('input-student-id').value.trim();
+      if (!studentId) return;
+
+      showLoading(true);
+      try {
+        const res = await fetchAPI({ action: 'searchStudent', studentId: studentId });
+        showLoading(false);
+
+        if (res.success) {
+          currentStudent = res.student;
+          document.getElementById('info-name').innerText = currentStudent.name;
+          document.getElementById('info-id').innerText = currentStudent.id;
+          document.getElementById('info-grade').innerText = currentStudent.grade;
+          document.getElementById('info-number').innerText = currentStudent.number;
+          document.getElementById('info-color').innerText = currentStudent.color || 'ไม่ระบุสี';
+          document.getElementById('input-memo').value = currentStudent.memo || '';
+
+          const oldSizeText = (currentStudent.size && currentStudent.size.trim() !== '') ? currentStudent.size : 'ยังไม่ได้ระบุ';
+          document.getElementById('info-old-size').innerText = oldSizeText;
+
+          if (currentStudent.size && String(currentStudent.size).trim() !== '') {
+            selectSize(currentStudent.size);
+            showAlert(
+              'หากต้องการเปลี่ยนแปลงข้อมูลที่เคยลงระบุไว้ ให้กดปุ่ม OK เพื่อเข้าไปหน้าระบุ size เพื่อดำเนินการเลือก size ใหม่', 
+              'info', 
+              'แจ้งเตือนการลงทะเบียน', 
+              function() { showView('order'); }
+            );
+          } else {
+            selectedSize = '';
+            document.querySelectorAll('.size-btn').forEach(btn => btn.classList.remove('selected'));
+            showView('order');
+          }
+
+        } else {
+          showAlert(res.message, 'error', 'ไม่สามารถทำรายการได้');
+        }
+      } catch (err) {
+        showLoading(false);
+        showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย', 'error', 'ข้อผิดพลาด');
+      }
+    }
+
+    function confirmOrderModal() {
+      if (!selectedSize) {
+        showAlert('กรุณาเลือก Size เสื้อก่อนทำรายการ', 'info', 'แจ้งเตือน');
+        return;
+      }
+      document.getElementById('confirm-name').innerText = currentStudent.name;
+      document.getElementById('confirm-size').innerText = selectedSize;
+      document.getElementById('confirm-memo').innerText = document.getElementById('input-memo').value || '-';
+      document.getElementById('modal-confirm-order').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('modal-confirm-order').classList.add('hidden');
+    }
+
+    async function submitOrder() {
+      closeConfirmModal();
+      showLoading(true);
+      const memo = document.getElementById('input-memo').value;
+
+      try {
+        const res = await fetchAPI({ 
+          action: 'saveShirtOrder', 
+          studentId: currentStudent.id, 
+          size: selectedSize, 
+          memo: memo 
+        });
+        showLoading(false);
+
+        if (res.success) {
+          showAlert('บันทึกข้อมูลเรียบร้อยแล้ว!', 'success', 'สำเร็จ', () => {
+            document.getElementById('input-student-id').value = '';
+            showView('search');
+          });
+        } else {
+          showAlert(res.message, 'error', 'เกิดข้อผิดพลาด');
+        }
+      } catch (err) {
+        showLoading(false);
+        showAlert('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error', 'ข้อผิดพลาด');
+      }
+    }
+
+    function openAdminModal() {
+      document.getElementById('modal-admin-login').classList.remove('hidden');
+      document.getElementById('input-admin-pass').value = '';
+    }
+
+    function closeAdminModal() {
+      document.getElementById('modal-admin-login').classList.add('hidden');
+    }
+
+    function verifyAdminPass() {
+      const pass = document.getElementById('input-admin-pass').value;
+      if (pass === 'saha1952') {
+        closeAdminModal();
+        loadAdminData();
+        showView('admin');
+      } else {
+        showAlert('รหัสผ่าน Admin ไม่ถูกต้อง!', 'error', 'เข้าสู่ระบบไม่สำเร็จ');
+      }
+    }
+
+    async function loadAdminData() {
+      showLoading(true);
+      try {
+        const settings = await fetchAPI({ action: 'getFixSettings' });
+        const tbody = document.getElementById('fix-settings-table');
+        tbody.innerHTML = settings.map((s, idx) => {
+          const isChecked = String(s.status).toLowerCase() === 'true';
+          return `
+            <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+              <td class="p-3 font-medium text-slate-800">${s.grade}</td>
+              <td class="p-3">
+                <label class="inline-flex items-center cursor-pointer space-x-3">
+                  <input type="checkbox" id="fix-checkbox-${idx}" class="sr-only peer" ${isChecked ? 'checked' : ''}>
+                  <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 relative"></div>
+                  <span class="text-sm font-medium text-slate-600 peer-checked:text-blue-600">
+                    ${isChecked ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                  </span>
+                </label>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        const report = await fetchAPI({ action: 'getReportData' });
+        showLoading(false);
+        renderReport(report);
+
+      } catch (err) {
+        showLoading(false);
+        showAlert('เกิดข้อผิดพลาดในการโหลดข้อมูล Admin', 'error', 'ข้อผิดพลาด');
+      }
+    }
+
+    async function saveFixSettings() {
+      const rows = document.querySelectorAll('#fix-settings-table tr');
+      const settings = [];
+      rows.forEach((row, idx) => {
+        const grade = row.cells[0].innerText;
+        const checkbox = document.getElementById(`fix-checkbox-${idx}`);
+        const status = checkbox && checkbox.checked ? 'True' : 'False';
+        settings.push({ grade: grade, status: status });
+      });
+
+      showLoading(true);
+      try {
+        const res = await fetchAPI({ action: 'updateFixSettings', settings: settings });
+        showLoading(false);
+        showAlert(res.message, 'success', 'บันทึกสำเร็จ');
+      } catch (err) {
+        showLoading(false);
+        showAlert('เกิดข้อผิดพลาดในการบันทึกการตั้งค่า', 'error', 'ข้อผิดพลาด');
+      }
+    }
+
+    function renderReport(report) {
+      const sizeTbody = document.getElementById('report-size-table');
+      const sizeTfoot = document.getElementById('report-size-table-foot');
+
+      let totalsByColor = { 'สีแดง': 0, 'สีเหลือง': 0, 'สีน้ำเงิน': 0, 'สีเขียว': 0, 'grandTotal': 0 };
+
+      sizeTbody.innerHTML = report.allSizes.map(size => {
+        const rowData = report.sizeMatrix[size] || { 'สีแดง': 0, 'สีเหลือง': 0, 'สีน้ำเงิน': 0, 'สีเขียว': 0, 'total': 0 };
+
+        totalsByColor['สีแดง'] += rowData['สีแดง'];
+        totalsByColor['สีเหลือง'] += rowData['สีเหลือง'];
+        totalsByColor['สีน้ำเงิน'] += rowData['สีน้ำเงิน'];
+        totalsByColor['สีเขียว'] += rowData['สีเขียว'];
+        totalsByColor['grandTotal'] += rowData['total'];
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="p-3 font-semibold border-r border-slate-200 text-slate-800">${size}</td>
+            <td class="p-3 text-center ${rowData['สีแดง'] > 0 ? 'font-semibold text-slate-800' : 'text-slate-300'}">${rowData['สีแดง']}</td>
+            <td class="p-3 text-center ${rowData['สีเหลือง'] > 0 ? 'font-semibold text-slate-800' : 'text-slate-300'}">${rowData['สีเหลือง']}</td>
+            <td class="p-3 text-center ${rowData['สีน้ำเงิน'] > 0 ? 'font-semibold text-slate-800' : 'text-slate-300'}">${rowData['สีน้ำเงิน']}</td>
+            <td class="p-3 text-center ${rowData['สีเขียว'] > 0 ? 'font-semibold text-slate-800' : 'text-slate-300'}">${rowData['สีเขียว']}</td>
+            <td class="p-3 text-center font-bold text-blue-600 bg-slate-50">${rowData['total']}</td>
+          </tr>
+        `;
+      }).join('');
+
+      sizeTfoot.innerHTML = `
+        <tr>
+          <td class="p-3 border-r border-slate-200">รวมทั้งหมด</td>
+          <td class="p-3 text-center text-red-600">${totalsByColor['สีแดง']}</td>
+          <td class="p-3 text-center text-amber-600">${totalsByColor['สีเหลือง']}</td>
+          <td class="p-3 text-center text-blue-600">${totalsByColor['สีน้ำเงิน']}</td>
+          <td class="p-3 text-center text-emerald-600">${totalsByColor['สีเขียว']}</td>
+          <td class="p-3 text-center text-blue-700 bg-blue-100 text-base">${totalsByColor['grandTotal']}</td>
+        </tr>
+      `;
+
+      const classTable = document.getElementById('report-class-table');
+      classTable.innerHTML = report.classSummary.map(item => {
+        const percent = item.totalStudents > 0 ? Math.round((item.orderedStudents / item.totalStudents) * 100) : 0;
+        return `
+          <tr>
+            <td class="p-3 font-medium text-slate-800">${item.grade}</td>
+            <td class="p-3">${item.color || '-'}</td>
+            <td class="p-3 text-center">${item.totalStudents}</td>
+            <td class="p-3 text-center font-semibold text-blue-600">${item.orderedStudents}</td>
+            <td class="p-3 text-center">
+              <div class="flex items-center justify-center space-x-2">
+                <div class="w-16 bg-slate-200 rounded-full h-2">
+                  <div class="bg-blue-600 h-2 rounded-full" style="width: ${percent}%"></div>
+                </div>
+                <span class="text-xs font-semibold">${percent}%</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  </script>
+</body>
+</html>
